@@ -55,15 +55,23 @@ class ProxyingHandlerMethodArgumentResolverUnitTests {
 	@Test // DATACMNS-776
 	void supportsAnnotatedInterfaceFromSpringNamespace() {
 
-		var parameter = getParameter("with", AnnotatedInterface.class);
+		var parameter = getParameter("withSpringAnnotatedInterface");
 
 		assertThat(resolver.supportsParameter(parameter)).isTrue();
+	}
+
+	@Test // DATACMNS-776
+	void doesNotSupportUnannotatedInterfaceFromSpringNamespace() {
+
+		var parameter = getParameter("withSpringUnannotatedInterface");
+
+		assertThat(resolver.supportsParameter(parameter)).isFalse();
 	}
 
 	@Test // GH-3301
 	void supportsAnnotatedInterfaceFromUserPackage() {
 
-		var parameter = getParameter("with", ProjectedPayloadMarkedSampleInterface.class);
+		var parameter = getParameter("withUserAnnotatedInterface");
 
 		assertThat(resolver.supportsParameter(parameter)).isTrue();
 	}
@@ -71,15 +79,7 @@ class ProxyingHandlerMethodArgumentResolverUnitTests {
 	@Test // GH-3301
 	void doesNotSupportUnannotatedInterfaceFromUserPackage() {
 
-		var parameter = getParameter("with", SampleInterface.class);
-
-		assertThat(resolver.supportsParameter(parameter)).isFalse();
-	}
-
-	@Test // DATACMNS-776
-	void doesNotSupportUnannotatedInterfaceFromSpringNamespace() {
-
-		var parameter = getParameter("with", UnannotatedInterface.class);
+		var parameter = getParameter("withUserUnannotatedInterface");
 
 		assertThat(resolver.supportsParameter(parameter)).isFalse();
 	}
@@ -133,7 +133,7 @@ class ProxyingHandlerMethodArgumentResolverUnitTests {
 	}
 
 	@ParameterizedTest // GH-3300
-	@ValueSource(strings = { "withModelAttribute", "withUnannotatedInterface" })
+	@ValueSource(strings = { "withModelAttribute", "withUserUnannotatedInterface" })
 	@SuppressWarnings("unchecked")
 	void deprecationLoggerOnlyLogsOncePerParameter(String methodName) {
 
@@ -152,7 +152,7 @@ class ProxyingHandlerMethodArgumentResolverUnitTests {
 	}
 
 	@ParameterizedTest // GH-3300
-	@ValueSource(strings = { "withProjectedPayload", "withAnnotatedInterface" })
+	@ValueSource(strings = { "withProjectedPayload", "withSpringAnnotatedInterface", "withUserAnnotatedInterface" })
 	void shouldNotLogDeprecationForValidUsage(String methodName) {
 
 		var parameter = getParameter(methodName);
@@ -192,17 +192,13 @@ class ProxyingHandlerMethodArgumentResolverUnitTests {
 
 	interface Controller {
 
-		void with(AnnotatedInterface param);
+		void withSpringAnnotatedInterface(AnnotatedInterface param);
 
-		void withAnnotatedInterface(@ModelAttribute AnnotatedInterface param);
+		void withSpringUnannotatedInterface(UnannotatedInterface param);
 
-		void with(UnannotatedInterface param);
+		void withUserAnnotatedInterface(ProjectedPayloadMarkedSampleInterface param);
 
-		void with(SampleInterface param);
-
-		void with(ProjectedPayloadMarkedSampleInterface param);
-
-		void withUnannotatedInterface(SampleInterface param);
+		void withUserUnannotatedInterface(SampleInterface param);
 
 		void with(List<Object> param);
 
