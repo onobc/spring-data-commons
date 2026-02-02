@@ -18,6 +18,7 @@ package org.springframework.data.web;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import example.ProjectedPayloadMarkedSampleInterface;
 import example.SampleInterface;
 
 import java.lang.reflect.Method;
@@ -52,19 +53,27 @@ class ProxyingHandlerMethodArgumentResolverUnitTests {
 			() -> new DefaultConversionService(), true);
 
 	@Test // DATACMNS-776
-	void supportAnnotatedInterface() {
+	void supportsAnnotatedInterfaceFromSpringNamespace() {
 
 		var parameter = getParameter("with", AnnotatedInterface.class);
 
 		assertThat(resolver.supportsParameter(parameter)).isTrue();
 	}
 
-	@Test // DATACMNS-776
-	void supportsUnannotatedInterfaceFromUserPackage() {
+	@Test // GH-3301
+	void supportsAnnotatedInterfaceFromUserPackage() {
+
+		var parameter = getParameter("with", ProjectedPayloadMarkedSampleInterface.class);
+
+		assertThat(resolver.supportsParameter(parameter)).isTrue();
+	}
+
+	@Test // GH-3301
+	void doesNotSupportUnannotatedInterfaceFromUserPackage() {
 
 		var parameter = getParameter("with", SampleInterface.class);
 
-		assertThat(resolver.supportsParameter(parameter)).isTrue();
+		assertThat(resolver.supportsParameter(parameter)).isFalse();
 	}
 
 	@Test // DATACMNS-776
@@ -91,12 +100,12 @@ class ProxyingHandlerMethodArgumentResolverUnitTests {
 		assertThat(resolver.supportsParameter(parameter)).isFalse();
 	}
 
-	@Test // GH-2937
-	void doesSupportAtModelAttribute() {
+	@Test // GH-3301
+	void doesNotSupportAtModelAttribute() {
 
 		var parameter = getParameter("withModelAttribute", SampleInterface.class);
 
-		assertThat(resolver.supportsParameter(parameter)).isTrue();
+		assertThat(resolver.supportsParameter(parameter)).isFalse();
 	}
 
 	@Test // GH-3258
@@ -123,11 +132,12 @@ class ProxyingHandlerMethodArgumentResolverUnitTests {
 		assertThat(resolver.supportsParameter(parameter)).isFalse();
 	}
 
-	@Test // GH-3300
+	@ParameterizedTest // GH-3300
+	@ValueSource(strings = { "withModelAttribute", "withUnannotatedInterface" })
 	@SuppressWarnings("unchecked")
-	void deprecationLoggerOnlyLogsOncePerParameter() {
+	void deprecationLoggerOnlyLogsOncePerParameter(String methodName) {
 
-		var parameter = getParameter("withModelAttribute", SampleInterface.class);
+		var parameter = getParameter(methodName);
 
 		// Spy on the actual logger
 		var actualLoggerSpy = spy(new LogAccessor(ProxyingHandlerMethodArgumentResolver.class));
@@ -135,9 +145,9 @@ class ProxyingHandlerMethodArgumentResolverUnitTests {
 				LogAccessor.class);
 
 		// Invoke twice but should only log the first time
-		assertThat(resolver.supportsParameter(parameter)).isTrue();
+		assertThat(resolver.supportsParameter(parameter)).isFalse();
 		verify(actualLoggerSpy, times(1)).warn(any(Supplier.class));
-		assertThat(resolver.supportsParameter(parameter)).isTrue();
+		assertThat(resolver.supportsParameter(parameter)).isFalse();
 		verifyNoMoreInteractions(actualLoggerSpy);
 	}
 
@@ -152,7 +162,7 @@ class ProxyingHandlerMethodArgumentResolverUnitTests {
 		ReflectionTestUtils.setField(ProxyingHandlerMethodArgumentResolver.class, "LOGGER", actualLoggerSpy,
 				LogAccessor.class);
 
-		// Invoke twice but should only log the first time
+		// Invoke should not log
 		assertThat(resolver.supportsParameter(parameter)).isTrue();
 		verifyNoInteractions(actualLoggerSpy);
 	}
@@ -189,6 +199,10 @@ class ProxyingHandlerMethodArgumentResolverUnitTests {
 		void with(UnannotatedInterface param);
 
 		void with(SampleInterface param);
+
+		void with(ProjectedPayloadMarkedSampleInterface param);
+
+		void withUnannotatedInterface(SampleInterface param);
 
 		void with(List<Object> param);
 
